@@ -582,10 +582,14 @@ impl Proc {
         }
     }
 
+    /// Return reference of ProcData.
+    /// This is safe because ProcData is private to the process.
     pub fn deref_procdata<'a>(&self) -> &'a ProcData {
         unsafe { &*self.data.get() }
     }
 
+    /// Return mutable reference of ProcData.
+    /// This is safe because ProcData is private to the process.
     pub fn deref_mut_procdata<'a>(&self) -> &'a mut ProcData {
         unsafe { &mut *self.data.get() }
     }
@@ -736,7 +740,7 @@ impl ProcessSystem {
         // Allocate process.
         let mut np = self.alloc()?;
 
-        let pdata = (*p).deref_mut_procdata();
+        let pdata = my_proc_data_mut();
         let mut npdata = &mut *np.data.get();
         // Copy user memory from parent to child.
         pdata.pagetable.copy(&mut npdata.pagetable, pdata.sz)?;
@@ -780,7 +784,7 @@ impl ProcessSystem {
     /// Return Err(()) if this process has no children.
     pub unsafe fn wait(&self, addr: UVAddr) -> Result<PID, ()> {
         let p: *mut Proc = myproc();
-        let data = (*p).deref_mut_procdata();
+        let data = my_proc_data_mut();
 
         // Assumes that the process_pool has at least 1 element.
         let mut parent_guard = self.process_pool[0].parent.assume_init_ref().lock();
@@ -835,7 +839,7 @@ impl ProcessSystem {
     /// until its parent calls wait().
     pub unsafe fn exit_current(&self, status: i32) -> ! {
         let p = myproc();
-        let data = (*p).deref_mut_procdata();
+        let data = my_proc_data_mut();
         assert_ne!(p, self.initial_proc, "init exiting");
 
         data.close_files();
@@ -917,6 +921,22 @@ pub unsafe fn myproc() -> *mut Proc {
     p
 }
 
+/// Return the current struct Proc's data with immutable refercnce.
+pub fn my_proc_data<'a>() -> &'a ProcData {
+    // TODO: Check safety of myproc()
+    let p = unsafe{myproc()};
+    assert!(!p.is_null(), "my_proc_data: no myproc");
+    unsafe{ (*p).deref_procdata() }
+}
+
+/// Return the current struct Proc's data with mutable refercnce.
+pub fn my_proc_data_mut<'b>() -> &'b mut ProcData {
+    // TODO: Check safety of myproc()
+    let p = unsafe{myproc()};
+    assert!(!p.is_null(), "my_proc_data_mut: no myproc");
+    unsafe{ (*p).deref_mut_procdata() }
+}
+
 /// Free a process's page table, and free the
 /// physical memory it refers to.
 pub unsafe fn proc_freepagetable(mut pagetable: PageTable<UVAddr>, sz: usize) {
@@ -935,9 +955,8 @@ const INITCODE: [u8; 52] = [
 
 /// Grow or shrink user memory by n bytes.
 /// Return 0 on success, -1 on failure.
-pub unsafe fn resizeproc(n: i32) -> i32 {
-    let p = myproc();
-    let data = (*p).deref_mut_procdata();
+pub fn resizeproc(n: i32) -> i32 {
+    let data = my_proc_data_mut();
     let sz = data.sz;
     let sz = match n.cmp(&0) {
         cmp::Ordering::Equal => sz,

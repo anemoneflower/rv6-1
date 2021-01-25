@@ -1,17 +1,11 @@
-use crate::{
-    kernel::Kernel,
-    println,
-    proc::myproc,
-    vm::{UVAddr, VAddr},
-};
+use crate::{kernel::Kernel, println, proc::{my_proc_data, my_proc_data_mut, myproc}, vm::{UVAddr, VAddr}};
 use core::{mem, slice, str};
 use cstr_core::CStr;
 
 /// Fetch the usize at addr from the current process.
 /// Returns Ok(fetched integer) on success, Err(()) on error.
 pub unsafe fn fetchaddr(addr: UVAddr) -> Result<usize, ()> {
-    let p = myproc();
-    let data = (*p).deref_mut_procdata();
+    let data = my_proc_data_mut();
     let mut ip = 0;
     if addr.into_usize() >= data.sz
         || addr.into_usize().wrapping_add(mem::size_of::<usize>()) > data.sz
@@ -28,37 +22,36 @@ pub unsafe fn fetchaddr(addr: UVAddr) -> Result<usize, ()> {
 /// Fetch the nul-terminated string at addr from the current process.
 /// Returns reference to the string in the buffer.
 pub unsafe fn fetchstr(addr: UVAddr, buf: &mut [u8]) -> Result<&CStr, ()> {
-    let p = myproc();
-    ((*p).deref_mut_procdata())
+    my_proc_data_mut()
         .pagetable
         .copy_in_str(buf, addr)?;
 
     Ok(CStr::from_ptr(buf.as_ptr()))
 }
 
-unsafe fn argraw(n: usize) -> usize {
-    let p = myproc();
-    let data = (*p).deref_mut_procdata();
+fn argraw(n: usize) -> usize {
+    // This is safe because we only read trapframe.
+    let trapframe = unsafe{ &*my_proc_data().trapframe };
     match n {
-        0 => (*data.trapframe).a0,
-        1 => (*data.trapframe).a1,
-        2 => (*data.trapframe).a2,
-        3 => (*data.trapframe).a3,
-        4 => (*data.trapframe).a4,
-        5 => (*data.trapframe).a5,
+        0 => trapframe.a0,
+        1 => trapframe.a1,
+        2 => trapframe.a2,
+        3 => trapframe.a3,
+        4 => trapframe.a4,
+        5 => trapframe.a5,
         _ => panic!("argraw"),
     }
 }
 
 /// Fetch the nth 32-bit system call argument.
-pub unsafe fn argint(n: usize) -> Result<i32, ()> {
+pub fn argint(n: usize) -> Result<i32, ()> {
     Ok(argraw(n) as i32)
 }
 
 /// Retrieve an argument as a pointer.
 /// Doesn't check for legality, since
 /// copyin/copyout will do that.
-pub unsafe fn argaddr(n: usize) -> Result<usize, ()> {
+pub fn argaddr(n: usize) -> Result<usize, ()> {
     Ok(argraw(n))
 }
 
@@ -72,8 +65,6 @@ pub unsafe fn argstr(n: usize, buf: &mut [u8]) -> Result<&CStr, ()> {
 
 impl Kernel {
     pub unsafe fn syscall(&'static self, num: i32) -> Result<usize, ()> {
-        let p = myproc();
-
         match num {
             1 => self.sys_fork(),
             2 => self.sys_exit(),
@@ -100,8 +91,8 @@ impl Kernel {
             _ => {
                 println!(
                     "{} {}: unknown sys call {}",
-                    (*p).pid(),
-                    str::from_utf8(&(*p).name).unwrap_or("???"),
+                    (*myproc()).pid(),
+                    str::from_utf8(&(*myproc()).name).unwrap_or("???"),
                     num
                 );
                 Err(())

@@ -1,15 +1,7 @@
-use crate::{
-    kernel::kernel,
-    memlayout::{TRAMPOLINE, TRAPFRAME, UART0_IRQ, VIRTIO0_IRQ},
-    ok_or,
-    plic::{plic_claim, plic_complete},
-    println,
-    proc::{cpuid, myproc, proc_yield, Proc, Procstate},
-    riscv::{
+use crate::{kernel::kernel, memlayout::{TRAMPOLINE, TRAPFRAME, UART0_IRQ, VIRTIO0_IRQ}, ok_or, plic::{plic_claim, plic_complete}, println, proc::{Proc, Procstate, cpuid, my_proc_data_mut, myproc, proc_yield}, riscv::{
         intr_get, intr_off, intr_on, make_satp, r_satp, r_scause, r_sepc, r_sip, r_stval, r_tp,
         w_sepc, w_sip, w_stvec, Sstatus, PGSIZE,
-    },
-};
+    }};
 use core::mem;
 
 extern "C" {
@@ -47,7 +39,7 @@ pub unsafe extern "C" fn usertrap() {
     w_stvec(kernelvec as _);
 
     let p: *mut Proc = myproc();
-    let mut data = (*p).deref_mut_procdata();
+    let mut data = my_proc_data_mut();
 
     // Save user program counter.
     (*data.trapframe).epc = r_sepc();
@@ -97,8 +89,7 @@ pub unsafe extern "C" fn usertrap() {
 
 /// Return to user space.
 pub unsafe fn usertrapret() {
-    let p: *mut Proc = myproc();
-    let mut data = (*p).deref_mut_procdata();
+    let mut data = my_proc_data_mut();
 
     // We're about to switch the destination of traps from
     // kerneltrap() to usertrap(), so turn off interrupts until

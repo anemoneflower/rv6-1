@@ -1,14 +1,6 @@
 #![allow(clippy::unit_arg)]
 
-use crate::{
-    fs::{InodeGuard, Path},
-    kernel::Kernel,
-    page::Page,
-    param::MAXARG,
-    proc::{myproc, Proc},
-    riscv::{pgroundup, PGSIZE},
-    vm::{KVAddr, PageTable, UVAddr, VAddr},
-};
+use crate::{fs::{InodeGuard, Path}, kernel::Kernel, page::Page, param::MAXARG, proc::{my_proc_data_mut, myproc}, riscv::{pgroundup, PGSIZE}, vm::{KVAddr, PageTable, UVAddr, VAddr}};
 use core::{cmp, mem};
 use cstr_core::CStr;
 
@@ -115,8 +107,7 @@ impl Kernel {
             return Err(());
         }
 
-        let p: *mut Proc = myproc();
-        let mut data = (*p).deref_mut_procdata();
+        let mut data = my_proc_data_mut();
         let mut pt = PageTable::<UVAddr>::new(data.trapframe).ok_or(())?;
 
         // Load program into memory.
@@ -197,7 +188,7 @@ impl Kernel {
             .rposition(|c| *c == b'/')
             .map(|i| &path_str[(i + 1)..])
             .unwrap_or(path_str);
-        let p_name = &mut (*p).name;
+        let p_name = &mut (*myproc()).name;
         let len = cmp::min(p_name.len(), name.len());
         p_name[..len].copy_from_slice(&name[..len]);
         if len < p_name.len() {

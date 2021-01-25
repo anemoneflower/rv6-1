@@ -2,7 +2,7 @@ use core::cmp;
 use core::mem;
 use cstr_core::CStr;
 
-use crate::{kernel::kernel, param::ROOTDEV, proc::myproc};
+use crate::{kernel::kernel, param::ROOTDEV, proc::{my_proc_data}};
 
 use super::{InodeType, RcInode, DIRSIZ, ROOTINO};
 
@@ -139,8 +139,7 @@ impl Path {
         let mut ptr = if self.is_absolute() {
             Self::root()
         } else {
-            // TODO(rv6): accessing proc.data should be safe after refactoring myproc()
-            unsafe { (*myproc()).deref_procdata().cwd.clone().unwrap() }
+            my_proc_data().cwd.clone().unwrap()
         };
 
         let mut path = self;

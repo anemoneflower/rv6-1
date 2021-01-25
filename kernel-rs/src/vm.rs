@@ -1,15 +1,7 @@
-use crate::{
-    kernel::kernel,
-    memlayout::{kstack, FINISHER, KERNBASE, PHYSTOP, PLIC, TRAMPOLINE, TRAPFRAME, UART0, VIRTIO0},
-    page::Page,
-    param::NPROC,
-    proc::{myproc, Trapframe},
-    riscv::{
+use crate::{kernel::kernel, memlayout::{kstack, FINISHER, KERNBASE, PHYSTOP, PLIC, TRAMPOLINE, TRAPFRAME, UART0, VIRTIO0}, page::Page, param::NPROC, proc::{Trapframe, my_proc_data_mut}, riscv::{
         make_satp, pa2pte, pgrounddown, pgroundup, pte2pa, px, pxshift, sfence_vma, w_satp,
         PteFlags, MAXVA, PGSIZE,
-    },
-    some_or,
-};
+    }, some_or};
 use core::{marker::PhantomData, mem, ops::Add, ptr};
 
 extern "C" {
@@ -136,16 +128,14 @@ impl VAddr for UVAddr {
     }
 
     unsafe fn copy_in(dst: &mut [u8], src: Self) -> Result<(), ()> {
-        let p = myproc();
-        ((*p).deref_mut_procdata())
+        my_proc_data_mut()
             .pagetable
             .copy_in(dst, src)
             .map_or(Err(()), |_v| Ok(()))
     }
 
     unsafe fn copy_out(dst: Self, src: &[u8]) -> Result<(), ()> {
-        let p = myproc();
-        ((*p).deref_mut_procdata())
+        my_proc_data_mut()
             .pagetable
             .copy_out(dst, src)
             .map_or(Err(()), |_v| Ok(()))

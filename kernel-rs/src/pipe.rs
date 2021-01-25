@@ -1,12 +1,4 @@
-use crate::{
-    file::{FileType, RcFile},
-    kernel::kernel,
-    page::Page,
-    proc::{myproc, WaitChannel},
-    riscv::PGSIZE,
-    spinlock::Spinlock,
-    vm::UVAddr,
-};
+use crate::{file::{FileType, RcFile}, kernel::kernel, page::Page, proc::{WaitChannel, my_proc_data_mut, myproc}, riscv::PGSIZE, spinlock::Spinlock, vm::UVAddr};
 use core::{mem, ops::Deref, ptr};
 
 const PIPESIZE: usize = 512;
@@ -177,11 +169,10 @@ pub enum PipeError {
 impl PipeInner {
     unsafe fn try_write(&mut self, addr: UVAddr, n: usize) -> Result<usize, PipeError> {
         let mut ch = [0 as u8];
-        let proc = myproc();
-        if !self.readopen || (*proc).killed() {
+        if !self.readopen || (*myproc()).killed() {
             return Err(PipeError::InvalidStatus);
         }
-        let data = (*proc).deref_mut_procdata();
+        let data = my_proc_data_mut();
         for i in 0..n {
             if self.nwrite == self.nread.wrapping_add(PIPESIZE as u32) {
                 //DOC: pipewrite-full
@@ -197,12 +188,11 @@ impl PipeInner {
     }
 
     unsafe fn try_read(&mut self, addr: UVAddr, n: usize) -> Result<usize, PipeError> {
-        let proc = myproc();
-        let data = (*proc).deref_mut_procdata();
+        let data = my_proc_data_mut();
 
         //DOC: pipe-empty
         if self.nread == self.nwrite && self.writeopen {
-            if (*proc).killed() {
+            if (*myproc()).killed() {
                 return Err(PipeError::InvalidStatus);
             }
             return Err(PipeError::WaitForIO);

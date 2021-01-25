@@ -4,20 +4,7 @@
 
 #![allow(clippy::unit_arg)]
 
-use crate::{
-    fcntl::FcntlFlags,
-    file::{FileType, RcFile},
-    fs::{Dirent, FileName, FsTransaction, InodeGuard, InodeType, Path, RcInode, DIRENT_SIZE},
-    kernel::{kernel, Kernel},
-    ok_or,
-    page::Page,
-    param::{MAXARG, MAXPATH, NDEV, NOFILE},
-    pipe::AllocatedPipe,
-    proc::myproc,
-    some_or,
-    syscall::{argaddr, argint, argstr, fetchaddr, fetchstr},
-    vm::{KVAddr, UVAddr, VAddr},
-};
+use crate::{fcntl::FcntlFlags, file::{FileType, RcFile}, fs::{Dirent, FileName, FsTransaction, InodeGuard, InodeType, Path, RcInode, DIRENT_SIZE}, kernel::{kernel, Kernel}, ok_or, page::Page, param::{MAXARG, MAXPATH, NDEV, NOFILE}, pipe::AllocatedPipe, proc::{my_proc_data, my_proc_data_mut}, some_or, syscall::{argaddr, argint, argstr, fetchaddr, fetchstr}, vm::{KVAddr, UVAddr, VAddr}};
 
 use arrayvec::ArrayVec;
 use core::{cell::UnsafeCell, mem, slice};
@@ -27,9 +14,7 @@ impl RcFile<'static> {
     /// Allocate a file descriptor for the given file.
     /// Takes over file reference from caller on success.
     fn fdalloc(self) -> Result<i32, Self> {
-        // TODO(rv6): These two unsafe blocks need to be safe after we refactor myproc()
-        let p = unsafe { myproc() };
-        let mut data = unsafe { (*p).deref_mut_procdata() };
+        let mut data = my_proc_data_mut();
         for fd in 0..NOFILE {
             // user pointer to struct stat
             if data.open_files[fd].is_none() {
@@ -43,14 +28,14 @@ impl RcFile<'static> {
 
 /// Fetch the nth word-sized system call argument as a file descriptor
 /// and return both the descriptor and the corresponding struct file.
-unsafe fn argfd(n: usize) -> Result<(i32, &'static RcFile<'static>), ()> {
+fn argfd(n: usize) -> Result<(i32, &'static RcFile<'static>), ()> {
     let fd = argint(n)?;
     if fd < 0 || fd >= NOFILE as i32 {
         return Err(());
     }
 
     let f = some_or!(
-        &((*myproc()).deref_procdata()).open_files[fd as usize],
+        &(my_proc_data()).open_files[fd as usize],
         return Err(())
     );
 
@@ -258,9 +243,7 @@ impl Kernel {
     /// Change the current directory.
     /// Returns Ok(()) on success, Err(()) on error.
     fn chdir(&self, dirname: &CStr) -> Result<(), ()> {
-        // TODO(rv6): These two unsafe blocks need to be safe after we refactor myproc()
-        let p = unsafe { myproc() };
-        let mut data = unsafe { (*p).deref_mut_procdata() };
+        let mut data = my_proc_data_mut();
         // TODO(rv6)
         // The method namei can drop inodes. If namei succeeds, its return
         // value, ptr, will be dropped when this method returns. Deallocation
@@ -281,9 +264,7 @@ impl Kernel {
     /// Create a pipe, put read/write file descriptors in fd0 and fd1.
     /// Returns Ok(()) on success, Err(()) on error.
     fn pipe(&self, fdarray: UVAddr) -> Result<(), ()> {
-        // TODO(rv6): These two unsafe blocks need to be safe after we refactor myproc()
-        let p = unsafe { myproc() };
-        let mut data = unsafe { (*p).deref_mut_procdata() };
+        let mut data = my_proc_data_mut();
         let (pipereader, pipewriter) = AllocatedPipe::alloc()?;
 
         let mut fd0 = pipereader.fdalloc().map_err(|_| ())?;
@@ -322,8 +303,7 @@ impl Kernel {
 impl Kernel {
     /// Return a new file descriptor referring to the same file as given fd.
     /// Returns Ok(new file descriptor) on success, Err(()) on error.
-    /// TODO(rv6): This is unsafe because fetching argument(argfd) is yet unsafe.
-    pub unsafe fn sys_dup(&self) -> Result<usize, ()> {
+    pub fn sys_dup(&self) -> Result<usize, ()> {
         let (_, f) = argfd(0)?;
         let newfile = f.clone();
         let fd = newfile.fdalloc().map_err(|_| ())?;
@@ -352,17 +332,15 @@ impl Kernel {
 
     /// Release open file fd.
     /// Returns Ok(0) on success, Err(()) on error.
-    /// TODO(rv6): This is unsafe because fetching argument(argfd) is yet unsafe.
-    pub unsafe fn sys_close(&self) -> Result<usize, ()> {
+    pub fn sys_close(&self) -> Result<usize, ()> {
         let (fd, _) = argfd(0)?;
-        // TODO(rv6): This line should be safe after we refactor myporc()
-        ((*myproc()).deref_mut_procdata()).open_files[fd as usize] = None;
+        my_proc_data_mut().open_files[fd as usize] = None;
         Ok(0)
     }
 
     /// Place info about an open file into struct stat.
     /// Returns Ok(0) on success, Err(()) on error.
-    /// TODO(rv6): This is unsafe because fetching argument(argfd, argaddr) is yet unsafe.
+    /// TODO(rv6): This is unsafe because stat is yet unsafe.
     pub unsafe fn sys_fstat(&self) -> Result<usize, ()> {
         let (_, f) = argfd(0)?;
         // user pointer to struct stat
@@ -481,8 +459,7 @@ impl Kernel {
 
     /// Create a pipe.
     /// Returns Ok(0) on success, Err(()) on error.
-    /// TODO(rv6): This is unsafe because fetching argument(argaddr) is yet unsafe.
-    pub unsafe fn sys_pipe(&self) -> Result<usize, ()> {
+    pub fn sys_pipe(&self) -> Result<usize, ()> {
         // user pointer to array of two integers
         let fdarray = UVAddr::new(argaddr(0)?);
         self.pipe(fdarray)?;

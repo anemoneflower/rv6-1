@@ -1,16 +1,6 @@
 //! Support functions for system calls that involve file descriptors.
 
-use crate::{
-    arena::{Arena, ArenaObject, ArrayArena, ArrayEntry, Rc},
-    fs::RcInode,
-    kernel::kernel,
-    param::{BSIZE, MAXOPBLOCKS, NFILE},
-    pipe::AllocatedPipe,
-    proc::{myproc, Proc},
-    spinlock::Spinlock,
-    stat::Stat,
-    vm::UVAddr,
-};
+use crate::{arena::{Arena, ArenaObject, ArrayArena, ArrayEntry, Rc}, fs::RcInode, kernel::kernel, param::{BSIZE, MAXOPBLOCKS, NFILE}, pipe::AllocatedPipe, proc::{my_proc_data_mut}, spinlock::Spinlock, stat::Stat, vm::UVAddr};
 use core::{cell::UnsafeCell, cmp, convert::TryFrom, mem, ops::Deref, slice};
 
 pub enum FileType {
@@ -70,12 +60,10 @@ impl File {
     /// Get metadata about file self.
     /// addr is a user virtual address, pointing to a struct stat.
     pub unsafe fn stat(&self, addr: UVAddr) -> Result<(), ()> {
-        let p: *mut Proc = myproc();
-
         match &self.typ {
             FileType::Inode { ip, .. } | FileType::Device { ip, .. } => {
                 let mut st = ip.stat();
-                (*p).deref_mut_procdata().pagetable.copy_out(
+                my_proc_data_mut().pagetable.copy_out(
                     addr,
                     slice::from_raw_parts_mut(
                         &mut st as *mut Stat as *mut u8,
