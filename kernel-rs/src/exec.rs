@@ -116,7 +116,7 @@ impl Kernel {
         }
 
         let p: *mut Proc = myproc();
-        let mut data = &mut *(*p).data.get();
+        let mut data = (*p).deref_mut_procdata();
         let mut pt = PageTable::<UVAddr>::new(data.trapframe).ok_or(())?;
 
         // Load program into memory.

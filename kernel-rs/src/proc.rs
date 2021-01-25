@@ -345,7 +345,7 @@ pub struct Proc {
 
     info: Spinlock<ProcInfo>,
 
-    pub data: UnsafeCell<ProcData>,
+    data: UnsafeCell<ProcData>,
 
     /// If true, the process have been killed.
     killed: AtomicBool,
@@ -581,6 +581,14 @@ impl Proc {
             self.info.get_mut().state = Procstate::RUNNABLE
         }
     }
+
+    pub fn deref_procdata<'a>(&self) -> &'a ProcData {
+        unsafe { &*self.data.get() }
+    }
+
+    pub fn deref_mut_procdata<'a>(&self) -> &'a mut ProcData {
+        unsafe { &mut *self.data.get() }
+    }
 }
 
 /// Process system type containing & managing whole processes.
@@ -728,7 +736,7 @@ impl ProcessSystem {
         // Allocate process.
         let mut np = self.alloc()?;
 
-        let pdata = &mut *(*p).data.get();
+        let pdata = (*p).deref_mut_procdata();
         let mut npdata = &mut *np.data.get();
         // Copy user memory from parent to child.
         pdata.pagetable.copy(&mut npdata.pagetable, pdata.sz)?;
@@ -772,7 +780,7 @@ impl ProcessSystem {
     /// Return Err(()) if this process has no children.
     pub unsafe fn wait(&self, addr: UVAddr) -> Result<PID, ()> {
         let p: *mut Proc = myproc();
-        let data = &mut *(*p).data.get();
+        let data = (*p).deref_mut_procdata();
 
         // Assumes that the process_pool has at least 1 element.
         let mut parent_guard = self.process_pool[0].parent.assume_init_ref().lock();
@@ -827,7 +835,7 @@ impl ProcessSystem {
     /// until its parent calls wait().
     pub unsafe fn exit_current(&self, status: i32) -> ! {
         let p = myproc();
-        let data = &mut *(*p).data.get();
+        let data = (*p).deref_mut_procdata();
         assert_ne!(p, self.initial_proc, "init exiting");
 
         data.close_files();
@@ -888,7 +896,7 @@ pub unsafe fn procinit(procs: &'static mut ProcessSystem) {
         p.parent
             .as_mut_ptr()
             .write(SpinlockProtected::new(&procs.wait_lock, ptr::null_mut()));
-        (&mut *(*p).data.get()).kstack = kstack(i);
+        ((*p).deref_mut_procdata()).kstack = kstack(i);
     }
 }
 
@@ -929,7 +937,7 @@ const INITCODE: [u8; 52] = [
 /// Return 0 on success, -1 on failure.
 pub unsafe fn resizeproc(n: i32) -> i32 {
     let p = myproc();
-    let data = &mut *(*p).data.get();
+    let data = (*p).deref_mut_procdata();
     let sz = data.sz;
     let sz = match n.cmp(&0) {
         cmp::Ordering::Equal => sz,

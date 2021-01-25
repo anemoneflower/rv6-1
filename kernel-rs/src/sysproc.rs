@@ -1,4 +1,10 @@
-use crate::{kernel::Kernel, poweroff, proc::{myproc, resizeproc}, syscall::{argaddr, argint}, vm::{UVAddr, VAddr}};
+use crate::{
+    kernel::Kernel,
+    poweroff,
+    proc::{myproc, resizeproc},
+    syscall::{argaddr, argint},
+    vm::{UVAddr, VAddr},
+};
 
 impl Kernel {
     /// Terminate the current process; status reported to wait(). No return.
@@ -29,7 +35,7 @@ impl Kernel {
     /// Returns Ok(start of new memory) on success, Err(()) on error.
     pub unsafe fn sys_sbrk(&self) -> Result<usize, ()> {
         let n = argint(0)?;
-        let addr = (*(*myproc()).data.get()).sz as i32;
+        let addr = ((*myproc()).deref_procdata()).sz as i32;
         if resizeproc(n) < 0 {
             return Err(());
         }

@@ -137,7 +137,7 @@ impl VAddr for UVAddr {
 
     unsafe fn copy_in(dst: &mut [u8], src: Self) -> Result<(), ()> {
         let p = myproc();
-        (*(*p).data.get())
+        ((*p).deref_mut_procdata())
             .pagetable
             .copy_in(dst, src)
             .map_or(Err(()), |_v| Ok(()))
@@ -145,7 +145,7 @@ impl VAddr for UVAddr {
 
     unsafe fn copy_out(dst: Self, src: &[u8]) -> Result<(), ()> {
         let p = myproc();
-        (*(*p).data.get())
+        ((*p).deref_mut_procdata())
             .pagetable
             .copy_out(dst, src)
             .map_or(Err(()), |_v| Ok(()))

@@ -11,7 +11,7 @@ use cstr_core::CStr;
 /// Returns Ok(fetched integer) on success, Err(()) on error.
 pub unsafe fn fetchaddr(addr: UVAddr) -> Result<usize, ()> {
     let p = myproc();
-    let data = &mut *(*p).data.get();
+    let data = (*p).deref_mut_procdata();
     let mut ip = 0;
     if addr.into_usize() >= data.sz
         || addr.into_usize().wrapping_add(mem::size_of::<usize>()) > data.sz
@@ -29,14 +29,16 @@ pub unsafe fn fetchaddr(addr: UVAddr) -> Result<usize, ()> {
 /// Returns reference to the string in the buffer.
 pub unsafe fn fetchstr(addr: UVAddr, buf: &mut [u8]) -> Result<&CStr, ()> {
     let p = myproc();
-    (*(*p).data.get()).pagetable.copy_in_str(buf, addr)?;
+    ((*p).deref_mut_procdata())
+        .pagetable
+        .copy_in_str(buf, addr)?;
 
     Ok(CStr::from_ptr(buf.as_ptr()))
 }
 
 unsafe fn argraw(n: usize) -> usize {
     let p = myproc();
-    let data = &mut *(*p).data.get();
+    let data = (*p).deref_mut_procdata();
     match n {
         0 => (*data.trapframe).a0,
         1 => (*data.trapframe).a1,

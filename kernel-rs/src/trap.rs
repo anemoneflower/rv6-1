@@ -47,7 +47,7 @@ pub unsafe extern "C" fn usertrap() {
     w_stvec(kernelvec as _);
 
     let p: *mut Proc = myproc();
-    let mut data = &mut *(*p).data.get();
+    let mut data = (*p).deref_mut_procdata();
 
     // Save user program counter.
     (*data.trapframe).epc = r_sepc();
@@ -98,7 +98,7 @@ pub unsafe extern "C" fn usertrap() {
 /// Return to user space.
 pub unsafe fn usertrapret() {
     let p: *mut Proc = myproc();
-    let mut data = &mut *(*p).data.get();
+    let mut data = (*p).deref_mut_procdata();
 
     // We're about to switch the destination of traps from
     // kerneltrap() to usertrap(), so turn off interrupts until

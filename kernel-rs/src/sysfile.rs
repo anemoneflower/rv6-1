@@ -29,7 +29,7 @@ impl RcFile<'static> {
     fn fdalloc(self) -> Result<i32, Self> {
         // TODO(rv6): These two unsafe blocks need to be safe after we refactor myproc()
         let p = unsafe { myproc() };
-        let mut data = unsafe { &mut *(*p).data.get() };
+        let mut data = unsafe { (*p).deref_mut_procdata() };
         for fd in 0..NOFILE {
             // user pointer to struct stat
             if data.open_files[fd].is_none() {
@@ -50,7 +50,7 @@ unsafe fn argfd(n: usize) -> Result<(i32, &'static RcFile<'static>), ()> {
     }
 
     let f = some_or!(
-        &(*(*myproc()).data.get()).open_files[fd as usize],
+        &((*myproc()).deref_procdata()).open_files[fd as usize],
         return Err(())
     );
 
@@ -260,7 +260,7 @@ impl Kernel {
     fn chdir(&self, dirname: &CStr) -> Result<(), ()> {
         // TODO(rv6): These two unsafe blocks need to be safe after we refactor myproc()
         let p = unsafe { myproc() };
-        let mut data = unsafe { &mut *(*p).data.get() };
+        let mut data = unsafe { (*p).deref_mut_procdata() };
         // TODO(rv6)
         // The method namei can drop inodes. If namei succeeds, its return
         // value, ptr, will be dropped when this method returns. Deallocation
@@ -283,7 +283,7 @@ impl Kernel {
     fn pipe(&self, fdarray: UVAddr) -> Result<(), ()> {
         // TODO(rv6): These two unsafe blocks need to be safe after we refactor myproc()
         let p = unsafe { myproc() };
-        let mut data = unsafe { &mut *(*p).data.get() };
+        let mut data = unsafe { (*p).deref_mut_procdata() };
         let (pipereader, pipewriter) = AllocatedPipe::alloc()?;
 
         let mut fd0 = pipereader.fdalloc().map_err(|_| ())?;
@@ -356,7 +356,7 @@ impl Kernel {
     pub unsafe fn sys_close(&self) -> Result<usize, ()> {
         let (fd, _) = argfd(0)?;
         // TODO(rv6): This line should be safe after we refactor myporc()
-        (*(*myproc()).data.get()).open_files[fd as usize] = None;
+        ((*myproc()).deref_mut_procdata()).open_files[fd as usize] = None;
         Ok(0)
     }
 
