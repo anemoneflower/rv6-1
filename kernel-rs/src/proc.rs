@@ -924,17 +924,17 @@ pub unsafe fn myproc() -> *mut Proc {
 /// Return the current struct Proc's data with immutable refercnce.
 pub fn my_proc_data<'a>() -> &'a ProcData {
     // TODO: Check safety of myproc()
-    let p = unsafe{myproc()};
+    let p = unsafe { myproc() };
     assert!(!p.is_null(), "my_proc_data: no myproc");
-    unsafe{ (*p).deref_procdata() }
+    unsafe { (*p).deref_procdata() }
 }
 
 /// Return the current struct Proc's data with mutable refercnce.
 pub fn my_proc_data_mut<'b>() -> &'b mut ProcData {
     // TODO: Check safety of myproc()
-    let p = unsafe{myproc()};
+    let p = unsafe { myproc() };
     assert!(!p.is_null(), "my_proc_data_mut: no myproc");
-    unsafe{ (*p).deref_mut_procdata() }
+    unsafe { (*p).deref_mut_procdata() }
 }
 
 /// Free a process's page table, and free the

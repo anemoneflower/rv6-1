@@ -1,4 +1,12 @@
-use crate::{file::{FileType, RcFile}, kernel::kernel, page::Page, proc::{WaitChannel, my_proc_data_mut, myproc}, riscv::PGSIZE, spinlock::Spinlock, vm::UVAddr};
+use crate::{
+    file::{FileType, RcFile},
+    kernel::kernel,
+    page::Page,
+    proc::{my_proc_data_mut, myproc, WaitChannel},
+    riscv::PGSIZE,
+    spinlock::Spinlock,
+    vm::UVAddr,
+};
 use core::{mem, ops::Deref, ptr};
 
 const PIPESIZE: usize = 512;

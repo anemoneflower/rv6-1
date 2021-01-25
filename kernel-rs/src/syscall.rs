@@ -1,4 +1,9 @@
-use crate::{kernel::Kernel, println, proc::{my_proc_data, my_proc_data_mut, myproc}, vm::{UVAddr, VAddr}};
+use crate::{
+    kernel::Kernel,
+    println,
+    proc::{my_proc_data, my_proc_data_mut, myproc},
+    vm::{UVAddr, VAddr},
+};
 use core::{mem, slice, str};
 use cstr_core::CStr;
 
@@ -22,16 +27,14 @@ pub unsafe fn fetchaddr(addr: UVAddr) -> Result<usize, ()> {
 /// Fetch the nul-terminated string at addr from the current process.
 /// Returns reference to the string in the buffer.
 pub unsafe fn fetchstr(addr: UVAddr, buf: &mut [u8]) -> Result<&CStr, ()> {
-    my_proc_data_mut()
-        .pagetable
-        .copy_in_str(buf, addr)?;
+    my_proc_data_mut().pagetable.copy_in_str(buf, addr)?;
 
     Ok(CStr::from_ptr(buf.as_ptr()))
 }
 
 fn argraw(n: usize) -> usize {
     // This is safe because we only read trapframe.
-    let trapframe = unsafe{ &*my_proc_data().trapframe };
+    let trapframe = unsafe { &*my_proc_data().trapframe };
     match n {
         0 => trapframe.a0,
         1 => trapframe.a1,

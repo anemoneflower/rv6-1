@@ -1,7 +1,15 @@
-use crate::{kernel::kernel, memlayout::{kstack, FINISHER, KERNBASE, PHYSTOP, PLIC, TRAMPOLINE, TRAPFRAME, UART0, VIRTIO0}, page::Page, param::NPROC, proc::{Trapframe, my_proc_data_mut}, riscv::{
+use crate::{
+    kernel::kernel,
+    memlayout::{kstack, FINISHER, KERNBASE, PHYSTOP, PLIC, TRAMPOLINE, TRAPFRAME, UART0, VIRTIO0},
+    page::Page,
+    param::NPROC,
+    proc::{my_proc_data_mut, Trapframe},
+    riscv::{
         make_satp, pa2pte, pgrounddown, pgroundup, pte2pa, px, pxshift, sfence_vma, w_satp,
         PteFlags, MAXVA, PGSIZE,
-    }, some_or};
+    },
+    some_or,
+};
 use core::{marker::PhantomData, mem, ops::Add, ptr};
 
 extern "C" {

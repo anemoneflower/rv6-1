@@ -2,7 +2,7 @@ use core::cmp;
 use core::mem;
 use cstr_core::CStr;
 
-use crate::{kernel::kernel, param::ROOTDEV, proc::{my_proc_data}};
+use crate::{kernel::kernel, param::ROOTDEV, proc::my_proc_data};
 
 use super::{InodeType, RcInode, DIRSIZ, ROOTINO};
 

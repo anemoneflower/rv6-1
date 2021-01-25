@@ -1,6 +1,16 @@
 //! Support functions for system calls that involve file descriptors.
 
-use crate::{arena::{Arena, ArenaObject, ArrayArena, ArrayEntry, Rc}, fs::RcInode, kernel::kernel, param::{BSIZE, MAXOPBLOCKS, NFILE}, pipe::AllocatedPipe, proc::{my_proc_data_mut}, spinlock::Spinlock, stat::Stat, vm::UVAddr};
+use crate::{
+    arena::{Arena, ArenaObject, ArrayArena, ArrayEntry, Rc},
+    fs::RcInode,
+    kernel::kernel,
+    param::{BSIZE, MAXOPBLOCKS, NFILE},
+    pipe::AllocatedPipe,
+    proc::my_proc_data_mut,
+    spinlock::Spinlock,
+    stat::Stat,
+    vm::UVAddr,
+};
 use core::{cell::UnsafeCell, cmp, convert::TryFrom, mem, ops::Deref, slice};
 
 pub enum FileType {

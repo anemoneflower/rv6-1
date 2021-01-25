@@ -4,7 +4,20 @@
 
 #![allow(clippy::unit_arg)]
 
-use crate::{fcntl::FcntlFlags, file::{FileType, RcFile}, fs::{Dirent, FileName, FsTransaction, InodeGuard, InodeType, Path, RcInode, DIRENT_SIZE}, kernel::{kernel, Kernel}, ok_or, page::Page, param::{MAXARG, MAXPATH, NDEV, NOFILE}, pipe::AllocatedPipe, proc::{my_proc_data, my_proc_data_mut}, some_or, syscall::{argaddr, argint, argstr, fetchaddr, fetchstr}, vm::{KVAddr, UVAddr, VAddr}};
+use crate::{
+    fcntl::FcntlFlags,
+    file::{FileType, RcFile},
+    fs::{Dirent, FileName, FsTransaction, InodeGuard, InodeType, Path, RcInode, DIRENT_SIZE},
+    kernel::{kernel, Kernel},
+    ok_or,
+    page::Page,
+    param::{MAXARG, MAXPATH, NDEV, NOFILE},
+    pipe::AllocatedPipe,
+    proc::{my_proc_data, my_proc_data_mut},
+    some_or,
+    syscall::{argaddr, argint, argstr, fetchaddr, fetchstr},
+    vm::{KVAddr, UVAddr, VAddr},
+};
 
 use arrayvec::ArrayVec;
 use core::{cell::UnsafeCell, mem, slice};
@@ -34,10 +47,7 @@ fn argfd(n: usize) -> Result<(i32, &'static RcFile<'static>), ()> {
         return Err(());
     }
 
-    let f = some_or!(
-        &(my_proc_data()).open_files[fd as usize],
-        return Err(())
-    );
+    let f = some_or!(&(my_proc_data()).open_files[fd as usize], return Err(()));
 
     Ok((fd, f))
 }
