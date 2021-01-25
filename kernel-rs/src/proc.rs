@@ -583,14 +583,14 @@ impl Proc {
     }
 
     /// Return reference of ProcData.
-    /// This is safe because ProcData is private to the process.
     pub fn deref_procdata<'a>(&self) -> &'a ProcData {
+        // This is safe because ProcData is private to the process.
         unsafe { &*self.data.get() }
     }
 
     /// Return mutable reference of ProcData.
-    /// This is safe because ProcData is private to the process.
     pub fn deref_mut_procdata<'a>(&self) -> &'a mut ProcData {
+        // This is safe because ProcData is private to the process.
         unsafe { &mut *self.data.get() }
     }
 }
@@ -930,7 +930,7 @@ pub fn my_proc_data<'a>() -> &'a ProcData {
 }
 
 /// Return the current struct Proc's data with mutable refercnce.
-pub fn my_proc_data_mut<'b>() -> &'b mut ProcData {
+pub fn my_proc_data_mut<'a>() -> &'a mut ProcData {
     // TODO: Check safety of myproc()
     let p = unsafe { myproc() };
     assert!(!p.is_null(), "my_proc_data_mut: no myproc");
